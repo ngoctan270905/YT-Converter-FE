@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YTGrab — YouTube Downloader</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap"
+    rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Syne', 'sans-serif'],
+            body: ['DM Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#fff1f0',
+              100: '#ffe0dd',
+              200: '#ffc5bf',
+              400: '#ff6155',
+              500: '#ff3b2d',
+              600: '#e8220f',
+              700: '#c1180a',
+              800: '#9f180e',
+              900: '#831a12',
+            },
+            dark: {
+              900: '#0a0a0b',
+              800: '#111113',
+              700: '#18181c',
+              600: '#222228',
+              500: '#2e2e38',
+              400: '#3e3e4d',
+              300: '#5a5a6e',
+            }
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'float2': 'float 8s ease-in-out infinite reverse',
+            'pulse-slow': 'pulse 4s ease-in-out infinite',
+            'spin-slow': 'spin 12s linear infinite',
+            'gradient': 'gradient 8s ease infinite',
+            'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'fade-in': 'fadeIn 0.8s ease forwards',
+            'shimmer': 'shimmer 2s linear infinite',
+          },
+          keyframes: {
+            float: { '0%,100%': { transform: 'translateY(0px)' }, '50%': { transform: 'translateY(-18px)' } },
+            slideUp: { from: { opacity: '0', transform: 'translateY(28px)' }, to: { opacity: '1', transform: 'translateY(0)' } },
+            fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } },
+            gradient: { '0%,100%': { 'background-position': '0% 50%' }, '50%': { 'background-position': '100% 50%' } },
+            shimmer: { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(200%)' } },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #0a0a0b;
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .noise::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    .glow-red {
+      box-shadow: 0 0 60px rgba(255, 59, 45, 0.15), 0 0 120px rgba(255, 59, 45, 0.08);
+    }
+
+    .glow-red-sm {
+      box-shadow: 0 0 20px rgba(255, 59, 45, 0.25);
+    }
+
+    .text-glow {
+      text-shadow: 0 0 40px rgba(255, 97, 85, 0.4);
+    }
+
+    .input-focus:focus {
+      outline: none;
+      border-color: rgba(255, 59, 45, 0.6);
+      box-shadow: 0 0 0 3px rgba(255, 59, 45, 0.12), 0 0 30px rgba(255, 59, 45, 0.1);
+    }
+
+    .btn-primary {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, #ff3b2d 0%, #ff6155 50%, #e8220f 100%);
+      background-size: 200% 200%;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 40%, rgba(255, 255, 255, 0.15) 50%, transparent 60%);
+      transform: translateX(-100%);
+      transition: transform 0.5s ease;
+    }
+
+    .btn-primary:hover::before {
+      transform: translateX(100%);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(255, 59, 45, 0.4), 0 4px 12px rgba(255, 59, 45, 0.3);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .format-card {
+      position: relative;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .format-card:hover,
+    .format-card.active {
+      background: rgba(255, 59, 45, 0.08);
+      border-color: rgba(255, 59, 45, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .format-card.active::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow: 0 0 20px rgba(255, 59, 45, 0.15) inset;
+    }
+
+    .quality-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .quality-btn:hover,
+    .quality-btn.active {
+      background: rgba(255, 59, 45, 0.15);
+      border-color: rgba(255, 59, 45, 0.5);
+      color: #ff6155;
+    }
+
+    .thumbnail-wrapper {
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    .thumbnail-wrapper::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 50%);
+    }
+
+    .progress-bar {
+      background: linear-gradient(90deg, #ff3b2d, #ff8a80, #ff3b2d);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s linear infinite;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+
+    .feature-icon {
+      background: rgba(255, 59, 45, 0.1);
+      border: 1px solid rgba(255, 59, 45, 0.2);
+    }
+
+    .history-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      transition: all 0.2s ease;
+    }
+
+    .history-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+      transform: translateX(4px);
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+    }
+  </style>
+</head>
+
+<body class="noise text-white">
+
+  <!-- Ambient background orbs -->
+  <div class="orb w-[600px] h-[600px] bg-brand-600/10 top-[-200px] left-[-100px] animate-float"></div>
+  <div class="orb w-[400px] h-[400px] bg-brand-500/6 top-[40%] right-[-150px] animate-float2"></div>
+  <div class="orb w-[300px] h-[300px] bg-purple-700/8 bottom-[-100px] left-[30%] animate-pulse-slow"></div>
+
+  <div class="relative z-10 min-h-screen flex flex-col">
+
+    <!-- NAV -->
+    <nav class="flex items-center justify-between px-6 md:px-12 py-5 border-b border-white/5">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center glow-red-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <span class="font-display font-700 text-lg tracking-tight">YTGrab</span>
+      </div>
+      <div class="hidden md:flex items-center gap-8 text-sm text-white/50 font-body">
+        <a href="#" class="hover:text-white transition-colors">Tính năng</a>
+        <a href="#" class="hover:text-white transition-colors">Định dạng</a>
+        <a href="#" class="hover:text-white transition-colors">FAQ</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="text-sm text-white/50 hover:text-white transition-colors font-body px-4 py-2">Đăng nhập</button>
+        <button
+          class="text-sm bg-white/8 border border-white/10 hover:bg-white/12 transition-all font-body px-4 py-2 rounded-lg">Đăng
+          ký</button>
+      </div>
+    </nav>
+
+    <!-- HERO -->
+    <main class="flex-1 flex flex-col items-center justify-start pt-20 pb-16 px-4 md:px-8">
+
+      <!-- Badge -->
+      <div class="animate-slide-up opacity-0 mb-6" style="animation-delay:0.1s; animation-fill-mode:forwards;">
+        <span
+          class="inline-flex items-center gap-2 bg-brand-500/10 border border-brand-500/25 text-brand-400 text-xs font-body font-500 px-4 py-1.5 rounded-full">
+          <span class="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse"></span>
+          Miễn phí · Không cần đăng ký · Không quảng cáo
+        </span>
+      </div>
+
+      <!-- Headline -->
+      <div class="animate-slide-up opacity-0 text-center mb-4"
+        style="animation-delay:0.2s; animation-fill-mode:forwards;">
+        <h1 class="font-display font-800 text-5xl md:text-7xl leading-[1.05] tracking-tight">
+          Tải video
+          <span class="text-glow" style="
+          background: linear-gradient(135deg, #ff6155 0%, #ff9a94 40%, #ff3b2d 100%);
+          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        ">YouTube</span><br />
+          <span class="text-white/70">cực nhanh.</span>
+        </h1>
+      </div>
+
+      <div class="animate-slide-up opacity-0 text-center mb-12"
+        style="animation-delay:0.3s; animation-fill-mode:forwards;">
+        <p class="text-white/40 text-lg font-body max-w-md">Hỗ trợ MP4, MP3, WebM — chất lượng lên đến 4K. Không cài
+          đặt, không đăng ký.</p>
+      </div>
+
+      <!-- Search Box -->
+      <div class="animate-slide-up opacity-0 w-full max-w-2xl mb-6"
+        style="animation-delay:0.4s; animation-fill-mode:forwards;">
+        <div class="relative glow-red rounded-2xl">
+          <div class="flex items-center bg-dark-700 border border-white/8 rounded-2xl overflow-hidden pr-2">
+            <!-- YouTube icon -->
+            <div class="pl-4 pr-3 flex-shrink-0">
+              <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+                <path
+                  d="M21.45 2.5A2.76 2.76 0 0 0 19.52.55C17.82 0 11 0 11 0S4.18 0 2.48.55A2.76 2.76 0 0 0 .55 2.5 29 29 0 0 0 0 8a29 29 0 0 0 .55 5.5A2.76 2.76 0 0 0 2.48 15.45C4.18 16 11 16 11 16s6.82 0 8.52-.55a2.76 2.76 0 0 0 1.93-1.95A29 29 0 0 0 22 8a29 29 0 0 0-.55-5.5z"
+                  fill="#FF0000" />
+                <path d="M8.73 11.45L14.55 8 8.73 4.55v6.9z" fill="white" />
+              </svg>
+            </div>
+            <input type="text" placeholder="Dán URL YouTube vào đây..."
+              class="flex-1 bg-transparent py-4 text-white placeholder-white/25 text-sm font-body input-focus focus:outline-none" />
+            <button class="btn-primary flex-shrink-0 font-display font-600 text-sm text-white px-6 py-3 rounded-xl">
+              Tải xuống
+            </button>
+          </div>
+        </div>
+        <p class="text-center text-white/25 text-xs font-body mt-3">Hỗ trợ youtube.com · youtu.be · YouTube Shorts ·
+          Playlist</p>
+      </div>
+
+      <!-- FORMAT SELECTOR (Preview UI) -->
+      <div class="animate-slide-up opacity-0 w-full max-w-2xl mb-16"
+        style="animation-delay:0.5s; animation-fill-mode:forwards;">
+        <div class="grid grid-cols-3 gap-3">
+
+          <div class="format-card active rounded-xl p-4 flex flex-col items-center gap-2">
+            <div class="w-10 h-10 rounded-lg feature-icon flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M15 10l4.553-2.277A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M3 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"
+                  stroke="#ff6155" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </div>
+            <span class="font-display font-600 text-sm text-white">MP4</span>
+            <span class="text-white/40 text-xs font-body">Video + Audio</span>
+          </div>
+
+          <div class="format-card rounded-xl p-4 flex flex-col items-center gap-2">
+            <div class="w-10 h-10 rounded-lg feature-icon flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"
+                  stroke="#ff6155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <span class="font-display font-600 text-sm text-white">MP3</span>
+            <span class="text-white/40 text-xs font-body">Chỉ âm thanh</span>
+          </div>
+
+          <div class="format-card rounded-xl p-4 flex flex-col items-center gap-2">
+            <div class="w-10 h-10 rounded-lg feature-icon flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M14.752 11.168l-3.197-2.132A1 1 0 0 0 10 9.87v4.263a1 1 0 0 0 1.555.832l3.197-2.132a1 1 0 0 0 0-1.664z"
+                  stroke="#ff6155" stroke-width="1.5" />
+                <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#ff6155" stroke-width="1.5" />
+              </svg>
+            </div>
+            <span class="font-display font-600 text-sm text-white">WebM</span>
+            <span class="text-white/40 text-xs font-body">Web format</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREVIEW CARD (mock result) -->
+      <div class="animate-slide-up opacity-0 w-full max-w-2xl mb-16"
+        style="animation-delay:0.6s; animation-fill-mode:forwards;">
+        <div class="bg-dark-700/60 border border-white/8 rounded-2xl overflow-hidden backdrop-blur-sm">
+          <!-- Top bar -->
+          <div class="flex items-center gap-2 px-5 py-3 border-b border-white/5">
+            <div class="w-2 h-2 rounded-full bg-brand-500/60"></div>
+            <span class="text-white/30 text-xs font-body flex-1">Kết quả — xem trước</span>
+            <span class="text-white/20 text-xs font-body">preview</span>
+          </div>
+
+          <div class="flex gap-5 p-5">
+            <!-- Thumbnail -->
+            <div class="thumbnail-wrapper flex-shrink-0 w-40 h-24 bg-dark-600">
+              <div
+                class="w-full h-full flex items-center justify-center bg-gradient-to-br from-dark-500 to-dark-700 relative">
+                <div class="w-10 h-10 rounded-full bg-brand-500/80 flex items-center justify-center">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </div>
+                <div
+                  class="absolute bottom-2 right-2 z-10 bg-black/70 text-white/80 text-xs px-1.5 py-0.5 rounded font-body">
+                  12:34</div>
+              </div>
+            </div>
+
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+              <div class="font-display font-600 text-sm text-white/90 leading-snug mb-1.5 line-clamp-2">
+                Lofi Hip Hop Radio 📚 — beats to relax/study to
+              </div>
+              <div class="text-white/35 text-xs font-body mb-3">Lofi Girl · 2.1M lượt xem · 2024</div>
+
+              <!-- Quality selector -->
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-white/30 text-xs font-body">Chất lượng:</span>
+                <button class="quality-btn active text-xs font-body px-3 py-1 rounded-lg text-brand-400">4K</button>
+                <button class="quality-btn text-xs font-body px-3 py-1 rounded-lg text-white/50">1080p</button>
+                <button class="quality-btn text-xs font-body px-3 py-1 rounded-lg text-white/50">720p</button>
+                <button class="quality-btn text-xs font-body px-3 py-1 rounded-lg text-white/50">480p</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Download CTA -->
+          <div class="px-5 pb-5">
+            <div class="flex items-center gap-3">
+              <button
+                class="btn-primary flex-1 font-display font-600 text-sm py-3 rounded-xl flex items-center justify-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="white"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Tải xuống MP4 · 4K
+              </button>
+              <button class="quality-btn p-3 rounded-xl">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0zm-5 0a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"
+                    stroke="#ffffff60" stroke-width="1.5" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress bar (fake) -->
+          <div class="h-0.5 bg-dark-500 relative overflow-hidden">
+            <div class="progress-bar absolute h-full w-1/2 left-0"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FEATURES -->
+      <div class="w-full max-w-4xl mb-20">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+          <div class="bg-dark-700/40 border border-white/6 rounded-2xl p-6 group hover:border-white/10 transition-all">
+            <div
+              class="w-11 h-11 rounded-xl feature-icon flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="#ff6155" stroke-width="1.5" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+            </div>
+            <h3 class="font-display font-600 text-base text-white mb-2">Siêu nhanh</h3>
+            <p class="text-white/40 text-sm font-body leading-relaxed">Tốc độ tải xuống tối đa với máy chủ phân tán toàn
+              cầu. Không giới hạn băng thông.</p>
+          </div>
+
+          <div class="bg-dark-700/40 border border-white/6 rounded-2xl p-6 group hover:border-white/10 transition-all">
+            <div
+              class="w-11 h-11 rounded-xl feature-icon flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" stroke="#ff6155" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <h3 class="font-display font-600 text-base text-white mb-2">Chất lượng cao</h3>
+            <p class="text-white/40 text-sm font-body leading-relaxed">Hỗ trợ 8K, 4K, 1080p, 720p. Giữ nguyên chất lượng
+              gốc không nén thêm.</p>
+          </div>
+
+          <div class="bg-dark-700/40 border border-white/6 rounded-2xl p-6 group hover:border-white/10 transition-all">
+            <div
+              class="w-11 h-11 rounded-xl feature-icon flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#ff6155" stroke-width="1.5"
+                  stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <h3 class="font-display font-600 text-base text-white mb-2">An toàn & riêng tư</h3>
+            <p class="text-white/40 text-sm font-body leading-relaxed">Không lưu trữ dữ liệu. File tự động xóa sau 1
+              giờ. Kết nối mã hóa HTTPS.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- RECENT DOWNLOADS (mock) -->
+      <div class="w-full max-w-2xl">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display font-600 text-base text-white/70">Tải gần đây</h2>
+          <button class="text-xs text-white/30 hover:text-white/60 transition-colors font-body">Xóa tất cả</button>
+        </div>
+        <div class="space-y-2">
+
+          <div class="history-item rounded-xl px-4 py-3 flex items-center gap-4">
+            <div class="w-8 h-8 rounded-lg bg-brand-500/15 flex items-center justify-center flex-shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M15 10l4.553-2.277A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M3 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"
+                  stroke="#ff6155" stroke-width="1.5" />
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-body text-white/70 truncate">How to Build a Full-Stack App in 2024</div>
+              <div class="text-xs text-white/25 font-body">MP4 · 1080p · 245 MB</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full bg-green-500/70"></div>
+              <span class="text-xs text-white/30 font-body">Xong</span>
+            </div>
+          </div>
+
+          <div class="history-item rounded-xl px-4 py-3 flex items-center gap-4">
+            <div class="w-8 h-8 rounded-lg bg-purple-500/15 flex items-center justify-center flex-shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M9 19V6l12-3v13M9 19c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm12 0c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2z"
+                  stroke="#a78bfa" stroke-width="1.5" />
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-body text-white/70 truncate">Lofi Hip Hop Radio 📚 beats to relax study to</div>
+              <div class="text-xs text-white/25 font-body">MP3 · 320kbps · 12.4 MB</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <div class="w-1.5 h-1.5 rounded-full bg-green-500/70"></div>
+              <span class="text-xs text-white/30 font-body">Xong</span>
+            </div>
+          </div>
+
+          <div class="history-item rounded-xl px-4 py-3 flex items-center gap-4">
+            <div class="w-8 h-8 rounded-lg bg-brand-500/15 flex items-center justify-center flex-shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M15 10l4.553-2.277A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M3 8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8z"
+                  stroke="#ff6155" stroke-width="1.5" />
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-body text-white/70 truncate">Top 10 AI Tools You Need in 2024</div>
+              <div class="text-xs text-white/25 font-body">MP4 · 4K · 1.2 GB</div>
+            </div>
+            <div class="flex items-center gap-1 gap-2">
+              <div class="w-16 h-1 rounded-full bg-dark-500 overflow-hidden">
+                <div class="progress-bar h-full w-[60%]"></div>
+              </div>
+              <span class="text-xs text-white/30 font-body">60%</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/5 py-8 px-6 md:px-12">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-5 h-5 rounded bg-brand-500/80 flex items-center justify-center">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="white" stroke-width="2.5" />
+            </svg>
+          </div>
+          <span class="font-display font-600 text-sm text-white/50">YTGrab</span>
+        </div>
+        <p class="text-white/20 text-xs font-body text-center">Chỉ dùng cho mục đích cá nhân. Vui lòng tôn trọng bản
+          quyền nội dung.</p>
+        <div class="flex items-center gap-5 text-xs text-white/25 font-body">
+          <a href="#" class="hover:text-white/50 transition-colors">Điều khoản</a>
+          <a href="#" class="hover:text-white/50 transition-colors">Riêng tư</a>
+          <a href="#" class="hover:text-white/50 transition-colors">Liên hệ</a>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Format card toggle
+    document.querySelectorAll('.format-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.format-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+      });
+    });
+
+    // Quality button toggle
+    document.querySelectorAll('.quality-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.closest('.flex');
+        group.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  </script>
+</body>
+
+</html>

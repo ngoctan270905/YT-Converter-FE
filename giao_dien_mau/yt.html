@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YTDownload - Tải Video YouTube Nhanh Chóng</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #ff0000;
+            --dark: #0f0f0f;
+            --gray: #1f1f1f;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+            color: #fff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            background: rgba(15, 15, 15, 0.95);
+            backdrop-filter: blur(12px);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        nav {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .logo i {
+            color: var(--primary);
+        }
+
+        .nav-links a {
+            color: #ddd;
+            text-decoration: none;
+            margin-left: 2rem;
+            transition: all 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255,0,0,0.5);
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            min-height: 650px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            background: url('https://source.unsplash.com/random/1920x1080/?youtube') no-repeat center center/cover;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(15,15,15,0.9));
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            padding: 2rem;
+        }
+
+        .hero h1 {
+            font-size: 3.8rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, #fff, #ff0000);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.4rem;
+            margin-bottom: 2.5rem;
+            color: #ddd;
+        }
+
+        /* Input Area */
+        .download-box {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 2.5rem 3rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 18px 22px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            background: rgba(255,255,255,0.95);
+            color: #111;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(255,0,0,0.3);
+        }
+
+        button {
+            padding: 18px 36px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        button:hover {
+            background: #cc0000;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(255,0,0,0.4);
+        }
+
+        /* Features & Guide */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 6rem 2rem;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 2.8rem;
+            margin-bottom: 3rem;
+            color: #fff;
+        }
+
+        .guide {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .step {
+            background: #1f1f1f;
+            padding: 2.5rem 2rem;
+            border-radius: 16px;
+            text-align: center;
+            transition: transform 0.4s, box-shadow 0.4s;
+        }
+
+        .step:hover {
+            transform: translateY(-15px);
+            box-shadow: 0 20px 40px rgba(255,0,0,0.2);
+        }
+
+        .step-number {
+            width: 70px;
+            height: 70px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 auto 1.5rem;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 5rem;
+        }
+
+        .feature-card {
+            background: #1a1a1a;
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .feature-card i {
+            font-size: 3rem;
+            color: #ff0000;
+            margin-bottom: 1rem;
+        }
+
+        footer {
+            background: #0a0a0a;
+            padding: 4rem 2rem 2rem;
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .smooth-scroll {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body class="smooth-scroll">
+
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="logo">
+                <i class="fab fa-youtube"></i>
+                <span>YTDownload</span>
+            </div>
+            <div class="nav-links">
+                <a href="#guide">Hướng dẫn</a>
+                <a href="#features">Tính năng</a>
+                <a href="#">Blog</a>
+                <a href="#">Liên hệ</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Tải Video YouTube<br>Nhanh &amp; Miễn Phí</h1>
+            <p>Chỉ cần dán link video YouTube, chọn định dạng và tải về ngay lập tức. Hỗ trợ Full HD, 4K, MP3.</p>
+
+            <div class="download-box">
+                <div class="input-group">
+                    <input type="text" id="youtubeUrl" placeholder="Dán link YouTube vào đây... (ví dụ: https://youtu.be/abc123)" />
+                    <button onclick="startDownload()">
+                        <i class="fas fa-download"></i> Tải ngay
+                    </button>
+                </div>
+                <small style="color:#aaa; font-size:0.9rem;">
+                    Hỗ trợ: Video, Shorts, Âm nhạc • Không cần đăng ký • An toàn &amp; Nhanh chóng
+                </small>
+            </div>
+        </div>
+    </section>
+
+    <!-- Hướng dẫn sử dụng -->
+    <div class="container" id="guide">
+        <h2>Hướng dẫn sử dụng chỉ với 3 bước đơn giản</h2>
+
+        <div class="guide">
+            <div class="step">
+                <div class="step-number">1</div>
+                <h3>Bước 1: Sao chép link</h3>
+                <p>Mở video YouTube bạn muốn tải → Nhấn <strong>Chia sẻ</strong> → Sao chép liên kết.</p>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <h3>Bước 2: Dán vào ô trên</h3>
+                <p>Dán link đã sao chép vào ô tìm kiếm phía trên và nhấn nút <strong>"Tải ngay"</strong>.</p>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <h3>Bước 3: Chọn định dạng</h3>
+                <p>Chọn chất lượng video (MP4 1080p, 4K) hoặc chỉ tải âm thanh (MP3). Tải về máy ngay!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tính năng nổi bật -->
+    <div class="container" id="features">
+        <h2>Tại sao nên chọn YTDownload?</h2>
+
+        <div class="features">
+            <div class="feature-card">
+                <i class="fas fa-bolt"></i>
+                <h3>Tốc độ siêu nhanh</h3>
+                <p>Sử dụng công nghệ tải song song hiện đại, tốc độ tải cao gấp nhiều lần so với các trang khác.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-video"></i>
+                <h3>Hỗ trợ chất lượng cao</h3>
+                <p>Hỗ trợ tải lên đến 4K, 8K, HDR và âm thanh chất lượng lossless (MP3 320kbps).</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-shield-alt"></i>
+                <h3>An toàn tuyệt đối</h3>
+                <p>Không yêu cầu đăng ký tài khoản. Không lưu trữ video của bạn. Không chứa quảng cáo phiền phức.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fas fa-mobile-alt"></i>
+                <h3>Thân thiện mọi thiết bị</h3>
+                <p>Hoàn toàn responsive, hoạt động mượt mà trên điện thoại, máy tính bảng và máy tính.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 YTDownload - Tải video YouTube miễn phí. Tất cả quyền được bảo lưu.</p>
+        <p style="margin-top: 1rem; font-size: 0.9rem; color: #777;">
+            Lưu ý: Chỉ sử dụng cho mục đích cá nhân. Hãy tôn trọng bản quyền của người sáng tạo nội dung.
+        </p>
+    </footer>
+
+    <script>
+        function startDownload() {
+            const url = document.getElementById('youtubeUrl').value.trim();
+
+            if (!url) {
+                alert("Vui lòng dán link YouTube vào ô trên!");
+                return;
+            }
+
+            if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+                alert("Link không hợp lệ! Vui lòng dán link YouTube.");
+                return;
+            }
+
+            alert("Đang xử lý link...\n\n(Đây là giao diện demo. Trong phiên bản thực tế sẽ gọi API để tải video)");
+
+            // Trong thực tế bạn sẽ gọi API ở đây
+            // window.location.href = `/download?url=${encodeURIComponent(url)}`;
+        }
+
+        // Nhấn Enter để tải
+        document.getElementById('youtubeUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                startDownload();
+            }
+        });
+    </script>
+</body>
+</html>
