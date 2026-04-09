@@ -246,10 +246,10 @@ export function HeroSection() {
                     <button
                       key={f.format_id}
                       onClick={() => {
-                        setSelectedQuality(f.format_id)
+                        setSelectedQuality(f.quality)
                         setSelectedQualityLabel(f.quality)
                       }}
-                      className={`quality-btn text-xs px-3 py-1.5 rounded-lg transition-all ${selectedQuality === f.format_id
+                      className={`quality-btn text-xs px-3 py-1.5 rounded-lg transition-all ${selectedQuality === f.quality
                         ? 'active text-brand-400 font-bold border-brand-400 bg-brand-500/10'
                         : 'text-white/70'
                         }`}
@@ -261,10 +261,10 @@ export function HeroSection() {
                     <button
                       key={f.format_id}
                       onClick={() => {
-                        setSelectedQuality(f.format_id)
+                        setSelectedQuality(f.quality)
                         setSelectedQualityLabel(f.quality)
                       }}
-                      className={`quality-btn text-xs px-3 py-1.5 rounded-lg transition-all ${selectedQuality === f.format_id
+                      className={`quality-btn text-xs px-3 py-1.5 rounded-lg transition-all ${selectedQuality === f.quality
                         ? 'active text-brand-400 font-bold border-brand-400 bg-brand-500/10'
                         : 'text-white/70'
                         }`}
@@ -273,10 +273,20 @@ export function HeroSection() {
                     </button>
                   ))}
                   {activeTab === 'mp3' && data.audio_formats.map((f) => (
-                    <button key={f.bitrate} onClick={() => {
-  setSelectedQuality(f.bitrate.toString())
-  setSelectedQualityLabel(f.bitrate + 'kbps')
-}} className={`quality-btn text-xs px-3 py-1.5 rounded-lg transition-all ${selectedQuality === f.bitrate.toString() ? 'active text-brand-400 font-bold border-brand-400 bg-brand-500/10' : 'text-white/70'}`}>{f.bitrate}kbps</button>
+                    <button 
+                      key={f.bitrate} 
+                      onClick={() => {
+                        const q = `${f.bitrate}k`
+                        setSelectedQuality(q)
+                        setSelectedQualityLabel(`${f.bitrate}kbps`)
+                      }} 
+                      className={`quality-btn text-xs px-3 py-1.5 rounded-lg transition-all ${selectedQuality === `${f.bitrate}k` 
+                        ? 'active text-brand-400 font-bold border-brand-400 bg-brand-500/10' 
+                        : 'text-white/70'
+                      }`}
+                    >
+                      {f.bitrate}kbps
+                    </button>
                   ))}
                 </div>
               </div>
