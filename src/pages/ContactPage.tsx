@@ -1,6 +1,5 @@
 import { PageLayout } from '../components/layout/PageLayout'
 import { FaTelegramPlane, FaFacebook } from 'react-icons/fa'
-import { SiZalo } from 'react-icons/si' // Note: If SiZalo doesn't exist, I'll use a generic icon
 
 export function ContactPage() {
   return (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { mediaService, type ConvertRequest } from '../../api/media'
 
@@ -11,7 +11,8 @@ export function HeroSection() {
 
   // Logic tiến trình tải xuống
   const [downloadProgress, setDownloadProgress] = useState(0)
-  const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [taskId, setTaskId] = useState<string | null>(null)
+  const [isPolling, setIsPolling] = useState(false)
 
   // 1. Lấy thông tin Media
   const { data, isLoading: isInfoLoading, isError, error } = useQuery({
@@ -26,42 +27,86 @@ export function HeroSection() {
   const mutation = useMutation({
     mutationFn: (payload: ConvertRequest) => mediaService.convertMedia(payload),
     onSuccess: async (res) => {
-      // Khi API trả về thành công -> 100%
-      clearInterval(progressInterval.current!)
-      setDownloadProgress(100)
-
-      try {
-        // Ép tải xuống bằng cách fetch file dưới dạng blob
-        const response = await fetch(res.download_url)
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', res.file_name)
-        document.body.appendChild(link)
-        link.click()
-
-        // Dọn dẹp
-        link.remove()
-        window.URL.revokeObjectURL(url)
-      } catch (err) {
-        console.error('Download error:', err)
-        // Fallback: Nếu fetch blob lỗi (do CORS), thử mở trực tiếp trong tab mới
-        window.open(res.download_url, '_blank')
-      }
-
-      // Reset sau 2 giây
-      setTimeout(() => {
-        setDownloadProgress(0)
-      }, 2000)
+      setTaskId(res.task_id)
+      setIsPolling(true)
     },
     onError: () => {
-      clearInterval(progressInterval.current!)
-      setDownloadProgress(0)
       alert('Đã xảy ra lỗi khi chuyển đổi. Vui lòng thử lại!')
     }
   })
+
+  // 3. Polling task status
+  const taskStatusQuery = useQuery({
+    queryKey: ['taskStatus', taskId],
+    queryFn: () => mediaService.getTaskStatus(taskId!),
+    enabled: !!taskId && isPolling,
+    refetchInterval: 2000,
+  })
+
+  useEffect(() => {
+    const taskStatus = taskStatusQuery.data
+
+    if (!taskStatus) return
+
+    console.log('Task Status Response:', taskStatus)
+    console.log('Setting progress to:', taskStatus.progress)
+    setDownloadProgress(taskStatus.progress)
+
+    if (taskStatus.status === 'success' && taskStatus.result) {
+      setDownloadProgress(100)
+      setIsPolling(false)
+      console.log('Task completed successfully, starting download...')
+      const result = taskStatus.result
+
+      try {
+        mediaService.downloadMedia(taskStatus.task_id)
+          .then(blob => {
+             console.log('BLOB TYPE:', blob?.type)
+             console.log('BLOB SIZE:', blob?.size)
+            const url = window.URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.setAttribute('download', result.file_name)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(url)
+            console.log('Download completed')
+          })
+          .catch(err => {
+            console.error('Lỗi khi tải xuống (Blob):', err)
+            alert('Có lỗi khi tải file trực tiếp, hệ thống sẽ mở file trong tab mới để bạn tải xuống.')
+            window.open(result.download_url, '_blank')
+          })
+      } catch (err) {
+        console.error('Lỗi khi tải xuống:', err)
+        window.open(result.download_url, '_blank')
+      }
+
+      window.setTimeout(() => {
+        setTaskId(null)
+        setDownloadProgress(0)
+      }, 1500)
+      return
+    }
+
+    if (taskStatus.status === 'failed' || taskStatus.error) {
+      console.error('Task failed:', taskStatus.error || 'Unknown error')
+      alert('Đã xảy ra lỗi khi chuyển đổi: ' + (taskStatus.error || 'Unknown error'))
+      setTaskId(null)
+      setIsPolling(false)
+      setDownloadProgress(0)
+    }
+  }, [taskStatusQuery.data])
+
+  useEffect(() => {
+    if (!taskStatusQuery.isError) return
+
+    alert('Không thể kiểm tra trạng thái task')
+    setTaskId(null)
+    setIsPolling(false)
+    setDownloadProgress(0)
+  }, [taskStatusQuery.isError])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,19 +122,7 @@ export function HeroSection() {
   }
 
   const handleDownload = () => {
-    if (!data || !selectedQuality || mutation.isPending) return
-
-    // Bắt đầu chạy tiến trình ảo (0% -> 95%)
-    setDownloadProgress(0)
-    progressInterval.current = setInterval(() => {
-      setDownloadProgress(prev => {
-        if (prev >= 95) {
-          clearInterval(progressInterval.current!)
-          return 95
-        }
-        return prev + Math.random() * 5
-      })
-    }, 400)
+    if (!data || !selectedQuality || mutation.isPending || taskId) return
 
     // Gọi API Convert
     mutation.mutate({
@@ -294,11 +327,11 @@ export function HeroSection() {
 
             <div className="px-5 pb-5">
               <button
-                disabled={!selectedQuality || mutation.isPending}
+                disabled={!selectedQuality || mutation.isPending || !!taskId}
                 onClick={handleDownload}
                 className="btn-primary w-full font-display font-semibold text-sm py-3.5 rounded-xl flex items-center justify-center gap-2 text-white disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                {mutation.isPending ? (
+                {(mutation.isPending || !!taskId) ? (
                   <>
                     <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

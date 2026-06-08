@@ -45,10 +45,37 @@ export interface ConvertRequest {
 }
 
 export interface ConvertData {
-  file_path: string
-  file_name: string
-  file_size: number
+  task_id: string
+  status: string
+  message: string | null
+}
+
+export interface TaskResult {
+  _id: string
+  url: string
+  format: string
+  quality: string
+  status: string
+  thumbnail: string
+  title: string
   download_url: string
+  file_name: string
+  file_path: string
+  progress: number
+}
+
+export interface TaskStatusData {
+  task_id: string
+  status: string
+  progress: number
+  result: TaskResult | null
+  error: string | null
+}
+
+export interface TaskStatusResponse {
+  success: boolean
+  message: string
+  data: TaskStatusData
 }
 
 export interface ConvertResponse {
@@ -79,5 +106,27 @@ export const mediaService = {
     }
     
     return response.data.data
+  },
+
+  getTaskStatus: async (taskId: string): Promise<TaskStatusData> => {
+    const response = await api.get<TaskStatusResponse>(`/media/task/${taskId}`)
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Không thể lấy trạng thái task')
+    }
+
+    return response.data.data
+  },
+
+ downloadMedia: async (taskId: string): Promise<Blob> => {
+  const response = await fetch(
+    `http://127.0.0.1:8000/api/v1/media/download/${taskId}`
+  )
+
+  if (!response.ok) {
+    throw new Error(`Download failed: ${response.status}`)
   }
+
+  return response.blob()
+}
 }
